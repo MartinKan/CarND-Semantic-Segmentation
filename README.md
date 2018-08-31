@@ -9,7 +9,7 @@ Overview of Repository
 ---
 This repository contains the following source code file that I have forked from the [main repository](https://github.com/udacity/CarND-Semantic-Segmentation) and subsequently modified for this project:
 
-1.  [main.py](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/main.py)
+1.  [main.py](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/main.py)
 
 Summary of the Model
 ---
@@ -21,11 +21,11 @@ Results
 ---
 Here are some of the sample results from the model using the road images from the Kitti Road Dataset:
 
-![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/results/um_000002.png)
-![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/results/um_000063.png)
-![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/results/um_000069.png)
-![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/results/um_000083.png)
-![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/src/results/um_000091.png)
+![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/results/um_000002.png)
+![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/results/um_000063.png)
+![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/results/um_000069.png)
+![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/results/um_000083.png)
+![alt text](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/results/um_000091.png)
 
 Running the code
 ---
