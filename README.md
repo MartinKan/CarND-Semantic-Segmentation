@@ -30,6 +30,8 @@ Here are some of the sample results from the model using the road images from th
 Running the code
 ---
 
+Before running the code, see the instructions under the "Setup" heading in [README_2.md](https://github.com/MartinKan/CarND-Semantic-Segmentation/blob/master/README_2.md).  The [Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) must be extracted into the data folder first before the code would work. 
+
 To run the code, use the following command:
 
 	python main.py
