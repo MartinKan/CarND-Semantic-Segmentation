@@ -100,4 +100,7 @@ ENV/
 # mypy
 .mypy_cache/
 
+# Source file for data
+data/data_road.zip
+
 RUNS/

@@ -33,8 +33,18 @@ def load_vgg(sess, vgg_path):
     vgg_layer3_out_tensor_name = 'layer3_out:0'
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
-    
-    return None, None, None, None, None
+
+    # Loading the model and weights from a pretrained VGG Model into Tensorflow
+    tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
+    graph = tf.get_default_graph()
+    vgg_input_image = graph.get_tensor_by_name(vgg_input_tensor_name)
+    vgg_keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    vgg_layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    vgg_layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    vgg_layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+
+    return vgg_input_image, vgg_keep_prob, vgg_layer3, vgg_layer4, vgg_layer7
+
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -48,7 +58,60 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    return None
+
+    # CHANGE CODE BELOW
+
+    # The code below implements the FCN-8 model.  This model involves an encoder portion that 
+    # downsamples the input image to smaller dimensions so that it will be computationally efficient 
+    # to process.  This portion is represented by the pretrained VGG model that we imported. Next, 
+    # a decoder portion is implemented that upsamples the output of the encoder and restores
+    # the processed image to the original image size (so that segmantation on the original image can be done).  
+    # The shape of the tensor after the final convolutional transpose layer will be 4-dimensional: 
+    # (batch_size, original_height, original_width, num_classes).
+
+    # Added to avoid ResourceExhaustedError
+    vgg_layer7_out = tf.stop_gradient(vgg_layer7_out)
+    vgg_layer4_out = tf.stop_gradient(vgg_layer4_out)
+    vgg_layer3_out = tf.stop_gradient(vgg_layer3_out)    
+
+    # Perform 1x1 convolution on the relevant vgg layers.  The height and width of the layers will stay the same 
+    # after the convolution but the number of filters on the layers will all be reduced to 1 - thus ensuring that
+    # they will have the same shape when performing the skip connections later on
+    vgg_layer7_out = tf.layers.conv2d(
+        vgg_layer7_out, num_classes, kernel_size=1, name='vgg_layer7_out')
+    vgg_layer4_out = tf.layers.conv2d(
+        vgg_layer4_out, num_classes, kernel_size=1, name='vgg_layer4_out')
+    vgg_layer3_out = tf.layers.conv2d(
+        vgg_layer3_out, num_classes, kernel_size=1, name='vgg_layer3_out')
+
+    # Begin upsampling the layers using transposed convolutions as instructed in the class tutorial.
+    # The first layer to upsample is the final layer of the VGG model
+    fcn8_decoder_layer1 = tf.layers.conv2d_transpose(
+        vgg_layer7_out, num_classes, kernel_size=4, strides=(2, 2),
+        padding='same', name='fcn8_decoder_layer1')
+
+    # After layer 7 has been upsampled, it will be the same size as vgg_layer4_out.  Next, we will 
+    # add the first skip connection from vgg_layer4_out
+    fcn8_decoder_layer2 = tf.add(
+        fcn8_decoder_layer1, vgg_layer4_out, name='fcn8_decoder_layer2')
+
+    # Perform another upsampling step using transposed convolution to create a new layer that has
+    # the same shape as vgg_layer3_out
+    fcn8_decoder_layer3 = tf.layers.conv2d_transpose(
+        fcn8_decoder_layer2, num_classes, kernel_size=4, strides=(2, 2),
+        padding='same', name='fcn8_decoder_layer3')
+
+    # Next, we will add the second skip connection from vgg_layer3_out
+    fcn8_decoder_layer4 = tf.add(
+        fcn8_decoder_layer3, vgg_layer3_out, name='fcn8_decoder_layer4')
+
+    # Finally, we will upsample fcn8_decoder_layer4 to make it the same shape as the input image 
+    fcn8_decoder_output = tf.layers.conv2d_transpose(
+        fcn8_decoder_layer4, num_classes, kernel_size=16, strides=(8, 8),
+        padding='same', name='fcn8_decoder_layer4')
+
+    return fcn8_decoder_output
+
 tests.test_layers(layers)
 
 
@@ -62,7 +125,16 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    return None, None, None
+    
+    # the code below follows closely the instructions that were given in the class tutorials
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    labels = tf.reshape(correct_label, (-1, num_classes))
+    loss_operation = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    training_operation = optimizer.minimize(loss_operation)
+
+    return logits, training_operation, loss_operation
+
 tests.test_optimize(optimize)
 
 
@@ -82,9 +154,19 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
-    pass
-tests.test_train_nn(train_nn)
+    #pass
 
+    sess.run(tf.global_variables_initializer())
+
+    # Trains the network using batches of training data provided by a helper function. The loss is calculated 
+    # and displayed at each training step
+    for i in range(epochs):
+        print("EPOCH {} ...".format(i+1))
+        for image, label in get_batches_fn(batch_size):
+            loss, _ = sess.run([cross_entropy_loss, train_op], feed_dict={input_image: image, correct_label: label, keep_prob: 0.5, learning_rate: 0.001})
+            print("Loss = {:.3f}".format(loss))
+
+tests.test_train_nn(train_nn)
 
 def run():
     num_classes = 2
@@ -92,7 +174,12 @@ def run():
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
+    EPOCHS = 25
+    BATCH_SIZE = 10
 
+    learning_rate = tf.placeholder(tf.float32, (None), name='learning_rate')
+    correct_label = tf.placeholder(tf.int32, (None, None, None, num_classes), name='correct_label')
+    
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
 
@@ -110,11 +197,16 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
+        layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
+        logits, training_operation, cross_entropy_loss = optimize(layer_output, correct_label, learning_rate, num_classes)
 
         # TODO: Train NN using the train_nn function
+        train_nn(sess, EPOCHS, BATCH_SIZE, get_batches_fn, training_operation, cross_entropy_loss, input_image,
+             correct_label, keep_prob, learning_rate)
 
         # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
